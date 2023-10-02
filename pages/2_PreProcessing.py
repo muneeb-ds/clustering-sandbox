@@ -4,6 +4,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+from collections import defaultdict
 
 
 @st.cache_data
@@ -166,3 +168,53 @@ if missing_vals:
         with col2:
             st.write("#### Permanent DF Stats")
             st.write(st.session_state.updated_df.describe(include="all"))
+
+
+cat_encoding = st.sidebar.checkbox("Categorical Encoding")
+if cat_encoding:
+    st.subheader("Categorical Encoding")
+    cat_df = st.session_state.updated_df.copy()
+    categorical_cols = cat_df.select_dtypes(include=['category', 'object', 'string']).columns
+    # cat_df = cat_df[categorical_cols]
+
+    cat_col = st.multiselect("Categorical Columns", options=categorical_cols)
+    if cat_col:
+
+        encoder = st.radio("Encoder", options=['Label', 'OneHot'])
+
+        if encoder == "Label":
+            label_dict = defaultdict(LabelEncoder)
+            temp_df = cat_df[cat_col].apply(lambda x: label_dict[x.name].fit_transform(x))
+        
+        elif encoder == "OneHot":
+            ohe = OneHotEncoder()
+            array_hot_encoded = ohe.fit_transform(cat_df[cat_col])
+            temp_df = pd.DataFrame(array_hot_encoded.toarray())
+            temp_df.columns = ohe.get_feature_names_out()
+            st.write(temp_df)
+
+        col1, col2 = st.columns([0.1,0.9])
+        with col1:
+            run_only = st.button("Run", key='encoding_run')
+        with col2:
+            run_and_persist = st.button("Run and Persist", key='encoding_persist')
+
+        if run_only:
+            cat_df.drop(columns = cat_col, inplace=True)
+            cat_df = pd.concat([cat_df, temp_df], axis=1)
+
+        if run_and_persist:
+            cat_df.drop(columns = cat_col, inplace=True)
+            cat_df = pd.concat([cat_df, temp_df], axis=1)
+            # cat_df[cat_col] = temp_df[cat_col]
+            st.session_state.updated_df = cat_df.copy()
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write("#### Temporary DF Head")
+            st.write(cat_df.head())
+
+        with col2:
+            st.write("#### Permanent DF Head")
+            st.write(st.session_state.updated_df.head())
+
