@@ -9,7 +9,7 @@ import plotly.graph_objects as go
 import plotly.figure_factory as ff
 
 st.set_page_config(
-    page_title="Hello",
+    page_title="Clustering Sandbox",
     page_icon="👋",
 )
 
