@@ -4,8 +4,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder, MinMaxScaler, StandardScaler
 from collections import defaultdict
+from feature_engine.datetime import DatetimeFeatures
 
 
 @st.cache_data
@@ -191,7 +192,6 @@ if cat_encoding:
             array_hot_encoded = ohe.fit_transform(cat_df[cat_col])
             temp_df = pd.DataFrame(array_hot_encoded.toarray())
             temp_df.columns = ohe.get_feature_names_out()
-            st.write(temp_df)
 
         col1, col2 = st.columns([0.1,0.9])
         with col1:
@@ -218,3 +218,93 @@ if cat_encoding:
             st.write("#### Permanent DF Head")
             st.write(st.session_state.updated_df.head())
 
+
+dt_prep = st.sidebar.checkbox("Datetime Prep")
+if dt_prep:
+    st.subheader("Datetime Feature Engineering")
+    dt_df = st.session_state.updated_df.copy()
+    dt_columns = dt_df.select_dtypes(include=["datetime64[ns]", "datetime64"]).columns
+    col_select = st.multiselect("Datetime Columns", options=dt_columns)
+    if col_select:
+        original_cols = dt_df.columns
+        dt_feature_eng = DatetimeFeatures(variables=col_select, features_to_extract='all')
+        dt_df_transf = dt_feature_eng.fit_transform(dt_df)
+        feature_names = dt_df_transf[dt_df_transf.columns.difference(original_cols)].columns
+        # feature_names = dt_feature_eng.get_feature_names_out()
+        dt_variables = st.multiselect("Datetime Features to keep", options=feature_names)
+
+
+        col1, col2 = st.columns([0.1,0.9])
+
+        with col1:
+            run_only = st.button("Run", key='scaling_run')
+        with col2:
+            run_and_persist = st.button("Run and Persist", key='scaling_persist')
+
+        if run_only:
+            dt_df_transf = dt_df_transf[dt_variables].astype(int)
+            dt_df[dt_variables] = dt_df_transf[dt_variables]
+            dt_df = dt_df.drop(columns=col_select)
+
+        if run_and_persist:
+            dt_df_transf = dt_df_transf[dt_variables]
+            dt_df[dt_variables] = dt_df_transf[dt_variables]
+            dt_df = dt_df.drop(columns=col_select)
+            st.session_state.updated_df = dt_df.copy()
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write("#### Temporary DF Head")
+            st.write(dt_df.head())
+
+        with col2:
+            st.write("#### Permanent DF Head")
+            st.write(st.session_state.updated_df.head())
+
+scaling = st.sidebar.checkbox("Feature Normalization")
+if scaling:
+    st.subheader("Feature Scaling")
+    scaled_df = st.session_state.updated_df.copy()
+    numerical_cols = scaled_df.columns
+    col_select = st.multiselect("Numerical Columns", options=numerical_cols)
+    if col_select:
+        encoder = st.radio("Scaler", options=['MinMax', 'Standard', "Log"])
+
+        selected_scaled_df = scaled_df[col_select]
+        if encoder == "MinMax":
+            scaler = MinMaxScaler()
+            selected_scaled_df = scaler.fit_transform(selected_scaled_df)
+
+        elif encoder == "Standard":
+            scaler = StandardScaler()
+            selected_scaled_df = scaler.fit_transform(selected_scaled_df)
+
+        elif encoder == "Log":
+            for cols in col_select:
+                selected_scaled_df[cols] = np.log(selected_scaled_df[cols])
+
+        col1, col2 = st.columns([0.1,0.9])
+
+        with col1:
+            run_only = st.button("Run", key='scaling_run')
+        with col2:
+            run_and_persist = st.button("Run and Persist", key='scaling_persist')
+
+        if run_only:
+            scaled_df[col_select] = selected_scaled_df
+            # scaled_df = pd.concat([scaled_df, selected_scaled_df], axis=1)
+
+        if run_and_persist:
+            scaled_df[col_select] = selected_scaled_df
+            # scaled_df = pd.concat([scaled_df, selected_scaled_df], axis=1)
+            # cat_df[cat_col] = temp_df[cat_col]
+            st.session_state.updated_df = scaled_df.copy()
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write("#### Temporary DF Head")
+            st.write(scaled_df.head())
+
+        with col2:
+            st.write("#### Permanent DF Head")
+            st.write(st.session_state.updated_df.head())
