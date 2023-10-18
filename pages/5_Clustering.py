@@ -178,51 +178,5 @@ if st.session_state.cluster_info:
     cluster_df = cluster_df.drop_duplicates(subset=['Model', 'Cluster Size'], keep='last')
     st.session_state.models_output = cluster_df.copy()
     st.write(st.session_state.models)
-    # st.write(cluster_df)
-
-    # elbow_plot(cluster_df)
-
-
-# if col_select:
-#     encoder = st.radio("Scaler", options=['MinMax', 'Standard', "Log"])
-
-#     selected_scaled_df = scaled_df[col_select]
-#     if encoder == "MinMax":
-#         scaler = MinMaxScaler()
-#         selected_scaled_df = scaler.fit_transform(selected_scaled_df)
-
-#     elif encoder == "Standard":
-#         scaler = StandardScaler()
-#         selected_scaled_df = scaler.fit_transform(selected_scaled_df)
-
-#     elif encoder == "Log":
-#         for cols in col_select:
-#             selected_scaled_df[cols] = np.log(selected_scaled_df[cols])
-
-#     col1, col2 = st.columns([0.1,0.9])
-
-#     with col1:
-#         run_only = st.button("Run", key='scaling_run')
-#     with col2:
-#         run_and_persist = st.button("Run and Persist", key='scaling_persist')
-
-#     if run_only:
-#         scaled_df[col_select] = selected_scaled_df
-#         # scaled_df = pd.concat([scaled_df, selected_scaled_df], axis=1)
-
-#     if run_and_persist:
-#         scaled_df[col_select] = selected_scaled_df
-#         # scaled_df = pd.concat([scaled_df, selected_scaled_df], axis=1)
-#         # cat_df[cat_col] = temp_df[cat_col]
-#         st.session_state.updated_df = scaled_df.copy()
-    
-#     col1, col2 = st.columns(2)
-#     with col1:
-#         st.write("#### Temporary DF Head")
-#         st.write(scaled_df.head())
-
-#     with col2:
-#         st.write("#### Permanent DF Head")
-#         st.write(st.session_state.updated_df.head())
 
     
