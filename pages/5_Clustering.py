@@ -5,7 +5,7 @@ from sklearn.metrics import silhouette_score
 import matplotlib.pyplot as plt
 import pandas as pd
 from stqdm import stqdm
-from yellowbrick.cluster import SilhouetteVisualizer
+# from yellowbrick.cluster import SilhouetteVisualizer
 
 def elbow_plot(cluster_info):
     kmeans_info = cluster_info[cluster_info['Model']=="KMeans"]
