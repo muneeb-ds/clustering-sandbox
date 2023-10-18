@@ -261,6 +261,39 @@ if dt_prep:
             st.write("#### Permanent DF Head")
             st.write(st.session_state.updated_df.head())
 
+duplicating = st.sidebar.checkbox("Drop Duplicates")
+if duplicating:
+    st.subheader("Drop Duplicates")
+    duplicated_df = st.session_state.updated_df.copy()
+    # numerical_cols = duplicated_df.columns
+
+    col1, col2 = st.columns([0.1,0.9])
+
+    with col1:
+        run_only = st.button("Run", key='duplicated_run')
+    with col2:
+        run_and_persist = st.button("Run and Persist", key='duplicated_persist')
+
+    if run_only:
+        duplicated_df = duplicated_df.drop_duplicates()
+        # scaled_df = pd.concat([scaled_df, selected_scaled_df], axis=1)
+
+    if run_and_persist:
+        duplicated_df = duplicated_df.drop_duplicates()
+        # scaled_df = pd.concat([scaled_df, selected_scaled_df], axis=1)
+        # cat_df[cat_col] = temp_df[cat_col]
+        st.session_state.updated_df = duplicated_df
+        
+    col1, col2 = st.columns(2)
+    with col1:
+        st.write("#### Temporary DF Size")
+        st.write(duplicated_df.size)
+
+    with col2:
+        st.write("#### Permanent DF Size")
+        st.write(st.session_state.updated_df.size)
+
+
 scaling = st.sidebar.checkbox("Feature Normalization")
 if scaling:
     st.subheader("Feature Scaling")
