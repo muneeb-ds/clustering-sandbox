@@ -7,18 +7,40 @@ import pandas as pd
 from stqdm import stqdm
 # from yellowbrick.cluster import SilhouetteVisualizer
 
+@st.cache_data
+def cluster_fit_predict(data, model, cluster_size=None):
+    match model:
+        case "KMeans":
+            method = KMeans(n_clusters=cluster_size)
+            cluster_labels = method.fit_predict(data)
+        case "MiniBatchKMeans":
+            method = MiniBatchKMeans(n_clusters=cluster_size)
+            cluster_labels = method.fit_predict(data)
+        case "DBSCAN":
+            method = DBSCAN(n_jobs=-1)
+            cluster_labels = method.fit_predict(data)
+            cluster_size = np.unique(cluster_labels).size
+        case "Agglomerative":
+            method = AgglomerativeClustering()
+            cluster_labels = method.fit_predict(data)
+            cluster_size = method.n_clusters_
+
+    st.session_state.models[model][cluster_size] = method
+
+    return method, cluster_labels
+
+@st.cache_resource
 def elbow_plot(cluster_info):
-    # kmeans_info = cluster_info[cluster_info['Model']=="KMeans"]
-    cluster_info = pd.DataFrame(cluster_info)
-    # cluster_df = cluster_info[cluster_info['Model']=="MiniBatchKMeans"]
-    # elbow_plot(cluster_df)
+    # cluster_info = pd.DataFrame(cluster_info)
     figure = plt.figure(figsize=(8, 6))
     plt.plot(cluster_info['Cluster Size'], cluster_info['WCSS'], marker='o')
     plt.title('Elbow Plot for K-Means Clustering')
     plt.xlabel('Number of Clusters (k)')
     plt.ylabel('Inertia')
     plt.grid(True)
-    st.pyplot(figure)
+    return figure
+
+
 
 # scaling = st.sidebar.checkbox("Feature Normalization")
 # if scaling:
@@ -48,11 +70,10 @@ if kmeans_check:
     run = st.button("Run")
     if run:
         st.session_state.models['KMeans'] = {}
-        elbow = []
+        # elbow = []
         for cluster_size in stqdm(range(2, max_clusters+1)):
             kmeans_cluster_df = cluster_df.copy()
-            kmeans = KMeans(n_clusters=cluster_size)
-            cluster_labels = kmeans.fit_predict(kmeans_cluster_df)
+            kmeans, cluster_labels = cluster_fit_predict(kmeans_cluster_df, "KMeans", cluster_size)
 
             sil_score = silhouette_score(kmeans_cluster_df, cluster_labels, sample_size=int(0.3*len(kmeans_cluster_df)))
             wcss = kmeans.inertia_
@@ -73,10 +94,9 @@ if kmeans_check:
                                 "ARI": ari,
                                 "NMI": nmi}
             
-            st.session_state.models['KMeans'][cluster_size] = kmeans
-            elbow.append(cluster_info_dict)
+            # elbow.append(cluster_info_dict)
             st.session_state.cluster_info.append(cluster_info_dict)
-        elbow_plot(elbow)
+        # st.pyplot(elbow_plot(elbow))
 
 mini_kmeans_run = st.sidebar.checkbox("MiniBatchKMeans")
 if mini_kmeans_run:
@@ -84,11 +104,10 @@ if mini_kmeans_run:
     run = st.button("Run")
     if run:
         st.session_state.models['MiniBatchKMeans'] = {}
-        elbow = []
+        # elbow = []
         for cluster_size in stqdm(range(2, max_clusters+1)):
             kmeans_cluster_df = cluster_df.copy()
-            kmeans = MiniBatchKMeans(n_clusters=cluster_size)
-            cluster_labels = kmeans.fit_predict(kmeans_cluster_df)
+            kmeans, cluster_labels = cluster_fit_predict(kmeans_cluster_df, "MiniBatchKMeans", cluster_size)
 
             sil_score = silhouette_score(kmeans_cluster_df, cluster_labels, sample_size=int(0.3*len(kmeans_cluster_df)))
             wcss = kmeans.inertia_
@@ -108,18 +127,16 @@ if mini_kmeans_run:
                                 "ARI": ari,
                                 "NMI": nmi}
             
-            st.session_state.models['MiniBatchKMeans'][cluster_size] = kmeans
-            elbow.append(cluster_info_dict)
+            # elbow.append(cluster_info_dict)
             st.session_state.cluster_info.append(cluster_info_dict)
-        elbow_plot(elbow)
+        # st.pyplot(elbow_plot(elbow))
 
 dbscan_run = st.sidebar.checkbox("DBSCAN")
 if dbscan_run:
     run = st.button("Run")
     if run:
         st.session_state.models['DBSCAN'] = {}
-        dbscan = DBSCAN(n_jobs=-1)
-        dbscan_labels = dbscan.fit_predict(cluster_df)
+        dbscan, dbscan_labels = cluster_fit_predict(kmeans_cluster_df, "DBSCAN", cluster_size)
         dbscan_clusters = np.unique(dbscan_labels).size
 
         sil_score_dbscan = silhouette_score(cluster_df, dbscan_labels, sample_size=int(0.3*len(cluster_df)))
@@ -139,9 +156,7 @@ if dbscan_run:
                             "ARI": ari,
                             "NMI": nmi}
         
-        st.session_state.models['DBSCAN'][dbscan_clusters] = dbscan
         st.session_state.cluster_info.append(cluster_info_dict)
-
 
 
 agg_run = st.sidebar.checkbox("Agglomerative")
@@ -149,8 +164,7 @@ if agg_run:
     run = st.button("Run")
     if run:
         st.session_state.models['Agglomerative'] = {}
-        agg_cluster = AgglomerativeClustering()
-        agg_labels = agg_cluster.fit_predict(cluster_df)
+        agg_cluster, agg_labels = cluster_fit_predict(kmeans_cluster_df, "Agglomerative", cluster_size)
         agg_clusters = agg_cluster.n_clusters_
 
         sil_score_agg = silhouette_score(cluster_df, agg_labels, sample_size=int(0.3*len(cluster_df)))
@@ -170,7 +184,6 @@ if agg_run:
                             "ARI": ari,
                             "NMI": nmi}
         
-        st.session_state.models['Agglomerative'][agg_clusters] = agg_cluster
         st.session_state.cluster_info.append(cluster_info_dict)
 
 if st.session_state.cluster_info:
