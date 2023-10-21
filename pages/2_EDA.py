@@ -57,7 +57,23 @@ if not st.session_state.updated_df.empty:
     st.subheader("EDA")
     st.write("#### Sample Dataframe Rows:")
     st.write(df.head())
+
+    st.write("#### Dataframe Shape")
+    col1, col2  = st.columns([0.2,0.8])
+    with col1:
+        st.metric("Rows", df.shape[0])
+    with col2:
+        st.metric("Columns", df.shape[1])
     
+    st.write("#### Unique Categories")
+    cols = st.multiselect("Unique Categories", options=list(df.select_dtypes(["object"]).columns))
+    for col in cols:
+        # col1, col2 = st.columns(2)
+        # with col1:
+        st.write(f"#### {col}:")
+        # with col2:
+        st.write(list(df[col].unique()))
+
     select_columns_checkbox = st.sidebar.checkbox("Select Useable Columns")
     if select_columns_checkbox:
         selected_columns = st.multiselect("#### Select Columns for use", options=df.columns)
@@ -99,6 +115,7 @@ if not st.session_state.updated_df.empty:
         df_melted = pd.melt(df[numerical_cols])
         fig = plt.figure()
         sns.boxplot(x='variable', y='value', data=df_melted)
+        plt.xticks(rotation=90)
         st.pyplot(fig)
 
     # if typecast_button:

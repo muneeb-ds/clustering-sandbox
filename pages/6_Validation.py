@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 @st.cache_data
-def dim_reduce(val_df, technique):
+def dim_reduce(val_df, model, size, technique):
     if technique == "pca":
         tech = PCA(n_components=2)
     elif technique == "tsne":
@@ -65,10 +65,10 @@ with col2:
 dim_red = st.radio("Dimensionality Reduction", options=['PCA', 't-SNE'])
 
 if dim_red == "PCA":
-    reduced_df = dim_reduce(validation_df, "pca")
+    reduced_df = dim_reduce(validation_df, model, size, "pca")
 
 if dim_red == "t-SNE":
-    reduced_df = dim_reduce(validation_df, "tsne")
+    reduced_df = dim_reduce(validation_df, model, size, "tsne")
 
 if st.button("Show Plot"):
     st.pyplot(plot_reduced(reduced_df))

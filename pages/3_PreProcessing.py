@@ -48,10 +48,16 @@ def percentile_trigger(df_outliers, col, lower_quantile, upper_quantile):
 
     return df_outliers
 
-def fix_missing_vals(missing_df, method):
+def fix_missing_vals(missing_df, method, custom = None):
     match method:
         case 'drop':
             missing_df = missing_df.dropna(axis=0, how = "any", subset = selected_cols)
+
+        case 'custom text':
+            missing_df[selected_cols] = missing_df[selected_cols].fillna(custom)
+
+        case 'custom value':
+            missing_df[selected_cols] = missing_df[selected_cols].fillna(value)
 
         case 'ffill' | 'bfill':
             missing_df[selected_cols] = missing_df[selected_cols].fillna(method=method)
@@ -147,7 +153,17 @@ if missing_vals:
     st.write(missing_df.isnull().sum())
 
     selected_cols = st.multiselect("Columns w/ Missing Vals", options=missing_df.columns)
-    method = st.radio("Method", options=['drop','ffill', 'bfill','mean', 'median','most_frequent', 'linear interpolation', 'quadratic interpolation'])
+    all_options = st.checkbox("Select All Missing Columns")
+    if all_options:
+        selected_cols = list(missing_df.columns)
+    
+    method = st.radio("Method", options=['drop','custom text','custom value', 'ffill', 'bfill','mean', 'median','most_frequent', 'linear interpolation', 'quadratic interpolation'])
+    custom = None
+    if method == "custom text":
+        custom = st.text_input("Custom Text")
+    if method == "custom value":
+        custom = st.number_input("Custom Number")
+
     col1, col2 = st.columns([0.1,0.9])
     with col1:
         run_only = st.button("Run", key='missing_val_run')
@@ -156,9 +172,9 @@ if missing_vals:
 
     if selected_cols:
         if run_only:
-            missing_df = fix_missing_vals(missing_df, method)
+            missing_df = fix_missing_vals(missing_df, method, custom)
         if run_and_persist:
-            missing_df = fix_missing_vals(missing_df, method)
+            missing_df = fix_missing_vals(missing_df, method, custom)
             st.session_state.updated_df = missing_df.copy()
 
         col1, col2 = st.columns(2)
@@ -179,6 +195,10 @@ if cat_encoding:
     # cat_df = cat_df[categorical_cols]
 
     cat_col = st.multiselect("Categorical Columns", options=categorical_cols)
+    all_options = st.checkbox("Select All Columns")
+    if all_options:
+        cat_col = list(categorical_cols)
+
     if cat_col:
 
         encoder = st.radio("Encoder", options=['Label', 'OneHot'])
@@ -300,6 +320,10 @@ if scaling:
     scaled_df = st.session_state.updated_df.copy()
     numerical_cols = scaled_df.columns
     col_select = st.multiselect("Numerical Columns", options=numerical_cols)
+    all_options = st.checkbox("Select All Columns")
+    if all_options:
+        col_select = list(numerical_cols)
+
     if col_select:
         encoder = st.radio("Scaler", options=['MinMax', 'Standard', "Log"])
 

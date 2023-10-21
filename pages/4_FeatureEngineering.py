@@ -8,7 +8,7 @@ fe_df = st.session_state.updated_df.copy()
 
 st.write("#### Correlation Map")
 st.write(fe_df.corr())
-fig = plt.figure()
+fig = plt.figure(figsize=(30,20))
 sns.heatmap(fe_df.corr(), annot=True, vmin=-1, vmax=1, cmap = 'YlGnBu')
 st.pyplot(fig)
 
