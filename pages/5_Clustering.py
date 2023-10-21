@@ -5,7 +5,7 @@ from sklearn.metrics import silhouette_score, davies_bouldin_score, calinski_har
 import matplotlib.pyplot as plt
 import pandas as pd
 from stqdm import stqdm
-from src.dunn import dunn_fast
+# from src.dunn import dunn_fast
 from scipy.cluster.hierarchy import dendrogram
 # from yellowbrick.cluster import SilhouetteVisualizer
 
