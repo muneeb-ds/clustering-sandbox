@@ -52,9 +52,12 @@ def assign_dtypes(df:pd.DataFrame, dtype_cols:dict):
 
 
 if not st.session_state.updated_df.empty:
-
+    
     df = st.session_state.updated_df.copy()
     st.subheader("EDA")
+
+    st.session_state.label = st.selectbox("Label? (Select None if not required)", options=[None] +list(df.columns))
+
     st.write("#### Sample Dataframe Rows:")
     st.write(df.head())
 

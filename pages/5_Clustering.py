@@ -2,11 +2,12 @@ import numpy as np
 import streamlit as st
 from sklearn.cluster import KMeans, AgglomerativeClustering, DBSCAN, MiniBatchKMeans
 from sklearn.metrics import silhouette_score, davies_bouldin_score, calinski_harabasz_score, adjusted_rand_score, adjusted_mutual_info_score, fowlkes_mallows_score
+from sklearn.mixture import GaussianMixture
 import matplotlib.pyplot as plt
 import pandas as pd
 from stqdm import stqdm
-# from src.dunn import dunn_fast
 from scipy.cluster.hierarchy import dendrogram
+from fcmeans import FCM
 # from yellowbrick.cluster import SilhouetteVisualizer
 
 # @st.cache_data
@@ -15,6 +16,14 @@ def cluster_fit_predict(data, model):
     cluster_size = np.unique(cluster_labels).size
     st.session_state.models[model.__class__.__name__][cluster_size] = model
 
+    return cluster_labels
+
+def fcm_fit_predict(data, model: FCM):
+    data_arr = data.to_numpy()
+    model.fit(data_arr)
+    cluster_labels = model.predict(data_arr)
+    cluster_size = model.n_clusters
+    st.session_state.models[model.__class__.__name__][cluster_size] = model
     return cluster_labels
 
 # @st.cache_resource
@@ -61,7 +70,7 @@ cluster_df = st.session_state.updated_df.copy()
 # clustering_type = st.multiselect("Cluster Type", options=['KMeans', "MiniKMeans", "Agglomerative", "DBScan"])
 label_options = list(cluster_df.columns) + [None]
 
-label = st.selectbox("Label", options=label_options)
+label = st.session_state.label
 
 if label:
     label_series = cluster_df[label]
@@ -230,6 +239,79 @@ if agg_run:
                             "Fowlkes-mallows": fmi}
         
         st.session_state.cluster_info.append(cluster_info_dict)
+
+
+gmm_run = st.sidebar.checkbox("GMM")
+if gmm_run:
+    n_clusters = st.slider("n_clusters", min_value=2, max_value=20)
+
+    if st.button("Run"):
+        if "GaussianMixture" not in st.session_state.models:
+            st.session_state.models['GaussianMixture'] = {}
+            
+        for cluster_size in stqdm(range(2, n_clusters+1)):
+            gmm_cluster_df = cluster_df.copy()
+            gmm_cluster = GaussianMixture(n_components=cluster_size, covariance_type='full', random_state=0)
+            gmm_labels = cluster_fit_predict(gmm_cluster_df, gmm_cluster)
+
+            # gmm_clusters = gmm_cluster.n_clusters_
+
+            sil_score_gmm = silhouette_score(gmm_cluster_df, gmm_labels, sample_size=int(0.3*len(gmm_cluster_df)))
+            db_index = davies_bouldin_score(gmm_cluster_df, gmm_labels)
+            ch_score = calinski_harabasz_score(gmm_cluster_df, gmm_labels)
+            ari = nmi = None
+            fmi = None
+            if label:
+                ari = adjusted_rand_score(label_series, gmm_labels)
+                nmi = adjusted_mutual_info_score(label_series, gmm_labels)
+                fmi = fowlkes_mallows_score(label_series, gmm_labels)
+            cluster_info_dict = {"Model": "GaussianMixture", 
+                                "Cluster Size": cluster_size, 
+                                "WCSS": None,
+                                "Silhouette Score": sil_score_gmm,
+                                "DB Index": db_index,
+                                "Calinski Harabasz Score": ch_score,
+                                "ARI": ari,
+                                "NMI": nmi,
+                                "Fowlkes-mallows": fmi}
+            
+            st.session_state.cluster_info.append(cluster_info_dict)
+
+fcm_run = st.sidebar.checkbox("FCM")
+if fcm_run:
+    n_clusters = st.slider("n_clusters", min_value=2, max_value=20)
+    fuzziness_degree = st.number_input("Degree of Fuziness", min_value=1)
+    if st.button("Run"):
+        if "FCM" not in st.session_state.models:
+            st.session_state.models['FCM'] = {}
+            
+        for cluster_size in stqdm(range(2, n_clusters+1)):
+            fcm_cluster_df = cluster_df.copy()
+            fcm_cluster = FCM(n_clusters=cluster_size, m=fuzziness_degree)
+            fcm_labels = fcm_fit_predict(fcm_cluster_df, fcm_cluster)
+
+            # fcm_clusters = fcm_cluster.n_clusters_
+
+            sil_score_fcm = silhouette_score(fcm_cluster_df, fcm_labels, sample_size=int(0.3*len(fcm_cluster_df)))
+            db_index = davies_bouldin_score(fcm_cluster_df, fcm_labels)
+            ch_score = calinski_harabasz_score(fcm_cluster_df, fcm_labels)
+            ari = nmi = None
+            fmi = None
+            if label:
+                ari = adjusted_rand_score(label_series, fcm_labels)
+                nmi = adjusted_mutual_info_score(label_series, fcm_labels)
+                fmi = fowlkes_mallows_score(label_series, fcm_labels)
+            cluster_info_dict = {"Model": "FCM", 
+                                "Cluster Size": cluster_size, 
+                                "WCSS": None,
+                                "Silhouette Score": sil_score_fcm,
+                                "DB Index": db_index,
+                                "Calinski Harabasz Score": ch_score,
+                                "ARI": ari,
+                                "NMI": nmi,
+                                "Fowlkes-mallows": fmi}
+            
+            st.session_state.cluster_info.append(cluster_info_dict)
 
 if st.session_state.cluster_info:
     cluster_df = pd.DataFrame(st.session_state.cluster_info)
